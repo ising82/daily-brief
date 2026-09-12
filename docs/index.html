@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>財經晨報｜財經日曆</title>
+<meta name="description" content="台灣與美國經濟數據、央行會議、重要財報與法說會行事曆，每日自動更新。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="calendar">
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./">☀️ 財經晨報</a>
+    <nav class="tabs">
+      <a class="tab is-active" data-nav="index.html" href="index.html" aria-current="page">財經日曆</a>
+      <a class="tab" data-nav="news.html" href="news.html">24h 快訊</a>
+    </nav>
+    <div class="stamp" id="stamp"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="markets" class="markets" aria-label="市場行情"></section>
+  <section id="recap"></section>
+  <section class="panel">
+    <div class="panel-head">
+      <h2>財經日曆<span class="sub" id="cal-range"></span></h2>
+      <div class="filters" id="cal-filters"></div>
+    </div>
+    <div id="calendar"></div>
+  </section>
+  <footer id="footer" class="foot"></footer>
+</main>
+
+<script src="data/latest.js"></script>
+<script src="data/archive-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

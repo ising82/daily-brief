@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>財經晨報｜24 小時快訊</title>
+<meta name="description" content="過去 24 小時台股、美股、總經、科技與外匯原物料重要財經新聞。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="news">
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./">☀️ 財經晨報</a>
+    <nav class="tabs">
+      <a class="tab" data-nav="index.html" href="index.html">財經日曆</a>
+      <a class="tab is-active" data-nav="news.html" href="news.html" aria-current="page">24h 快訊</a>
+    </nav>
+    <div class="stamp" id="stamp"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="panel-head"><h2>重點新聞<span class="sub">依重要度排序</span></h2></div>
+    <ol id="top-news" class="top-news"></ol>
+  </section>
+  <section class="panel">
+    <div class="panel-head">
+      <h2>24 小時快訊<span class="sub" id="news-count"></span></h2>
+      <div class="filters" id="news-filters"></div>
+    </div>
+    <div id="news-list"></div>
+  </section>
+  <footer id="footer" class="foot"></footer>
+</main>
+
+<script src="data/latest.js"></script>
+<script src="data/archive-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
