@@ -1,0 +1,1 @@
+window.BRIEF_INDEX=["2026-09-12"];
