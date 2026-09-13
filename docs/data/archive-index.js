@@ -1,1 +1,1 @@
-window.BRIEF_INDEX=["2026-09-12"];
+window.BRIEF_INDEX=["2026-09-13","2026-09-12"];
