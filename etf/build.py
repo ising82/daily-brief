@@ -6,6 +6,7 @@
   c    收盤價（Yahoo 已就分割回溯調整）
   div  [[列索引, 每單位配息], ...]（除息日對應的列；含息報酬在網頁端計算）
   vol20 近 20 日平均成交量（股）
+  adj  [[日期, 倍數], ...] 偵測到的分割／反分割（Yahoo 常漏掉台灣槓反 ETF 的反分割），舊價已乘上倍數
 含息／年化／波動／回撤等全部在網頁端計算，Python 只負責抓資料與合併快取。
 """
 import json
@@ -76,9 +77,43 @@ def encode(hist):
         if i is not None and i > 0:
             div.append([i, round(hist["div"][d], 4)])
     vols = [hist["rows"][d][1] for d in dates[-20:] if hist["rows"][d][1]]
-    return {"d0": dates[0], "dd": dd, "c": closes, "div": div,
+    return {"d0": dates[0], "dd": dd, "c": closes, "div": div, "adj": hist.get("adj") or [],
             "vol20": int(sum(vols) / len(vols)) if vols else 0,
             "last": closes[-1], "lastDate": dates[-1]}
+
+
+SPLIT_N = (2, 3, 4, 5, 8, 10)
+
+
+def adjust_splits(hist):
+    """偵測未被 Yahoo 調整的分割／反分割：相鄰兩日收盤比接近整數倍（±12%）就把之前的價格與配息乘上倍數。
+
+    ETF 單日漲跌不可能接近 2 倍或腰斬（台股有漲跌幅限制，海外槓桿 ETF 也遠不到），所以誤判機率極低；
+    偵測結果會存進 adj 欄位，網頁明細會標示。"""
+    rows, div = hist["rows"], hist["div"]
+    dates = sorted(rows)
+    found = []
+    for i in range(1, len(dates)):
+        p0, p1 = rows[dates[i - 1]][0], rows[dates[i]][0]
+        if not p0 or not p1:
+            continue
+        r = p1 / p0
+        factor = None
+        for n in SPLIT_N:
+            if abs(r - n) / n < 0.12:
+                factor = float(n)          # 反分割 n 合 1：舊價 ×n
+            elif abs(r - 1 / n) * n < 0.12:
+                factor = 1 / n             # 分割 1 拆 n：舊價 ÷n
+        if factor:
+            for d in dates[:i]:
+                rows[d][0] *= factor
+                rows[d][1] = int(rows[d][1] / factor)
+            for d in list(div):
+                if d < dates[i]:
+                    div[d] *= factor
+            found.append([dates[i], round(factor, 4)])
+    hist["adj"] = found
+    return found
 
 
 def merge(old, new):
@@ -128,6 +163,9 @@ def run(full=False, limit=None):
     out_etfs = []
     for i, e in enumerate(etfs, 1):
         hist = _update(e["yahoo"], cache.get(e["code"]), full, errors, f"{e['code']} {e['name']}")
+        if hist:
+            for day, factor in adjust_splits(hist):
+                print(f"  {e['code']} {e['name']}：{day} 偵測到{'反' if factor > 1 else ''}分割 ×{factor:g}，已回溯調整")
         enc = encode(hist) if hist else None
         if enc:
             item = {k: e[k] for k in ("code", "name", "market", "listed", "active", "cat", "region")}

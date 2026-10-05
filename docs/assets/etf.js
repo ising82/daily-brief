@@ -400,6 +400,7 @@
           <div><span>20 日均量</span><b>${e.vol20 ? Math.round(e.vol20 / 1000).toLocaleString() + " 張" : "—"}</b></div>
           <div><span>外部連結</span><a href="${yahoo}" target="_blank" rel="noopener">Yahoo 股市</a></div>
         </div>
+        ${(e.adj || []).length ? `<div class="na" style="margin-top:8px">價格已依偵測到的分割／反分割回溯調整：${e.adj.map(([d, f]) => `${esc(d)} ×${f}`).join("、")}</div>` : ""}
         <h4>標準期間報酬</h4>
         <table class="cmp"><thead><tr><th class="l">期間</th><th>不含息</th><th>含息再投入</th><th>含息不再投入</th><th>含息年化</th></tr></thead><tbody>${rows}</tbody></table>
         <h4>配息紀錄（最近 24 次，除息日／每單位／以當日收盤計之單次殖利率）</h4>
