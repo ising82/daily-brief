@@ -1,0 +1,56 @@
+name: 台灣 ETF 績效資料
+
+on:
+  schedule:
+    - cron: "40 10 * * 1-6"   # UTC 10:40 = 台灣 18:40（週一～週六；週六為整段重抓）
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "整段重抓所有歷史（第一次或資料異常時勾選）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: daily-briefing     # 與晨報共用，避免同時 push 與部署
+  cancel-in-progress: false
+
+jobs:
+  etf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: 抓取 ETF 清單、價格與配息
+        run: python3 -m etf build ${{ inputs.full && '--full' || '' }}
+
+      - name: 保存資料到 repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/etf.js
+          if git commit -m "ETF 資料 $(TZ=Asia/Taipei date +%F)"; then
+            git pull --rebase --autostash && git push
+          else
+            echo "資料沒有變更"
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

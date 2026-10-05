@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>財經晨報｜台灣 ETF 績效比較</title>
+<meta name="description" content="台灣上市櫃 ETF（主動／被動）績效比較：自訂天／週／月／年期間、含息或不含息、波動與最大回撤、配息率，每日自動更新。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/etf.css">
+</head>
+<body data-page="etf">
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./">☀️ 財經晨報</a>
+    <nav class="tabs">
+      <a class="tab" data-nav="index.html" href="index.html">財經日曆</a>
+      <a class="tab" data-nav="news.html" href="news.html">24h 快訊</a>
+      <a class="tab is-active" href="etf.html" aria-current="page">ETF 比較</a>
+    </nav>
+    <div class="stamp" id="stamp"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <section class="panel ctl">
+    <div class="ctl-row">
+      <span class="lbl">期間</span>
+      <div class="filters" id="quick"></div>
+      <form class="custom" id="custom-form">
+        <input type="number" id="c-n" min="1" step="1" value="30" aria-label="數字">
+        <select id="c-unit" aria-label="單位">
+          <option value="td">交易日</option>
+          <option value="d">天</option>
+          <option value="w">週</option>
+          <option value="m">月</option>
+          <option value="y">年</option>
+        </select>
+        <button type="submit" class="btn">套用</button>
+      </form>
+      <form class="custom" id="range-form">
+        <input type="date" id="r-from" aria-label="起日">
+        <span class="lbl">～</span>
+        <input type="date" id="r-to" aria-label="訖日">
+        <button type="submit" class="btn">套用區間</button>
+      </form>
+    </div>
+    <div class="ctl-row">
+      <span class="lbl">報酬</span>
+      <div class="filters seg" id="mode">
+        <button class="chip" data-mode="price">不含息（價格）</button>
+        <button class="chip" data-mode="tr">含息（再投入）</button>
+        <button class="chip" data-mode="trx">含息（不再投入）</button>
+      </div>
+      <label class="toggle"><input type="checkbox" id="ann"> 顯示年化（期間 ≥ 1 年）</label>
+    </div>
+    <div class="ctl-row">
+      <span class="lbl">篩選</span>
+      <input class="search" id="q" type="search" placeholder="代號或名稱" autocomplete="off">
+      <div class="filters seg" id="type">
+        <button class="chip" data-type="all">全部</button>
+        <button class="chip" data-type="passive">被動式</button>
+        <button class="chip" data-type="active">主動式</button>
+      </div>
+      <select id="market" class="sel" aria-label="市場">
+        <option value="all">上市＋上櫃</option>
+        <option value="上市">上市</option>
+        <option value="上櫃">上櫃</option>
+      </select>
+      <label class="toggle">20日均量 ≥ <input type="number" id="minvol" min="0" step="100" value="0" class="mini"> 張</label>
+      <label class="toggle"><input type="checkbox" id="hide-short" checked> 隱藏資料不足</label>
+    </div>
+    <div class="ctl-row">
+      <span class="lbl">分類</span>
+      <div class="filters" id="cats"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="compare-panel">
+    <div class="panel-head">
+      <h2>比較走勢<span class="sub" id="cmp-sub"></span></h2>
+      <div class="filters" id="bench"></div>
+    </div>
+    <div class="panel-body">
+      <div id="chart" class="chart"></div>
+      <div id="cmp-table"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>排行<span class="sub" id="rank-sub"></span></h2>
+      <div class="filters">
+        <button class="chip" id="clear-sel">清除勾選</button>
+        <button class="chip" id="csv">下載 CSV</button>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
+    <div class="empty" id="tbl-note"></div>
+  </section>
+
+  <footer class="foot" id="footer"></footer>
+</main>
+
+<dialog id="detail"></dialog>
+
+<script src="data/etf.js"></script>
+<script src="assets/etf.js"></script>
+</body>
+</html>
