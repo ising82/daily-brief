@@ -23,6 +23,7 @@ PREFIX = "window.ETF_DATA="
 BENCH = [{"code": "^TWII", "name": "加權指數", "yahoo": "^TWII", "cat": "指數", "note": "價格指數，不含股息"}]
 STALE_DAYS = 25      # 快取最後日期太舊就全抓
 PAUSE = 0.35         # 每檔之間停一下，避免被 Yahoo 限流
+MAX_STREAK = 12      # 連續失敗這麼多檔就判定被限流，其餘沿用快取，讓部署不被拖住
 
 
 # ---------------------------------------------------------------- 快取
@@ -161,8 +162,19 @@ def run(full=False, limit=None):
     print(f"ETF {len(etfs)} 檔，快取 {len(cache)} 檔，{'全抓' if full else '增量'}")
 
     out_etfs = []
+    streak, halted = 0, False
     for i, e in enumerate(etfs, 1):
-        hist = _update(e["yahoo"], cache.get(e["code"]), full, errors, f"{e['code']} {e['name']}")
+        cached = cache.get(e["code"])
+        if halted:
+            hist = cached
+        else:
+            before = len(errors)
+            hist = _update(e["yahoo"], cached, full, errors, f"{e['code']} {e['name']}")
+            streak = streak + 1 if len(errors) > before else 0
+            if streak >= MAX_STREAK:
+                halted = True
+                errors.append(f"連續 {MAX_STREAK} 檔抓取失敗（可能被 Yahoo 限流），其餘 {len(etfs) - i} 檔沿用前次資料")
+                print(" !", errors[-1])
         if hist:
             for day, factor in adjust_splits(hist):
                 print(f"  {e['code']} {e['name']}：{day} 偵測到{'反' if factor > 1 else ''}分割 ×{factor:g}，已回溯調整")
@@ -173,11 +185,12 @@ def run(full=False, limit=None):
             out_etfs.append(item)
         if i % 25 == 0:
             print(f"  {i}/{len(etfs)}")
-        time.sleep(PAUSE)
+        if not halted:
+            time.sleep(PAUSE)
 
     bench = []
     for b in BENCH:
-        hist = _update(b["yahoo"], cache.get(b["code"]), full, errors, b["name"])
+        hist = cache.get(b["code"]) if halted else _update(b["yahoo"], cache.get(b["code"]), full, errors, b["name"])
         enc = encode(hist) if hist else None
         if enc:
             item = dict(b)

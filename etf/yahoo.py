@@ -21,7 +21,7 @@ def _result(symbol, rng):
     last = None
     for host in HOSTS:
         try:
-            data = fetch_json(CHART.format(host, urllib.parse.quote(symbol, safe=""), p1, p2), retries=1, timeout=40)
+            data = fetch_json(CHART.format(host, urllib.parse.quote(symbol, safe=""), p1, p2), retries=0, timeout=20)
             res = (data.get("chart") or {}).get("result") or []
             if not res:
                 raise ValueError((data.get("chart") or {}).get("error") or "沒有資料")
