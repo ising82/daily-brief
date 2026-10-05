@@ -10,7 +10,8 @@
                  ["3y", "3年"], ["5y", "5年"], ["10y", "10年"], ["max", "上市以來"]];
   const UNITS = { td: "個交易日", d: "天", w: "週", m: "個月", y: "年" };
   const MODES = { price: "不含息（價格報酬）", tr: "含息（配息再投入）", trx: "含息（配息不再投入）" };
-  const CATS = ["市值型", "高股息", "主題/產業", "海外股票", "債券", "槓桿/反向", "商品/期貨", "多重資產/其他"];
+  const CATS = ["市值型", "高股息", "主題/產業", "債券", "槓桿/反向", "商品/期貨", "多重資產/其他"];
+  const REGIONS = ["台灣", "海外", "跨國"];
   const COLORS = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6", "--s7", "--s8"];
   const MAX_SEL = 8;
 
@@ -118,7 +119,7 @@
   // ---------- 狀態
   const state = {
     period: { kind: "quick", key: "1y" }, mode: "tr", ann: false,
-    q: "", type: "all", cats: new Set(CATS), market: "all", minVol: 0, hideShort: true,
+    q: "", type: "all", cats: new Set(CATS), regions: new Set(REGIONS), market: "all", minVol: 0, hideShort: true,
     sort: { key: "ret", dir: -1 }, sel: [], bench: new Set(["^TWII"]),
   };
   function periodLabel(p) {
@@ -143,6 +144,7 @@
     if (h.get("a") === "1") state.ann = true;
     if (["all", "passive", "active"].includes(h.get("t"))) state.type = h.get("t");
     if (h.get("c")) state.cats = new Set(h.get("c").split(",").filter((c) => CATS.includes(c)));
+    if (h.get("r")) state.regions = new Set(h.get("r").split(",").filter((c) => REGIONS.includes(c)));
     if (h.get("q")) state.q = h.get("q");
     if (h.get("s")) state.sel = h.get("s").split(",").filter((c) => byCode[c]).slice(0, MAX_SEL);
     if (h.has("b")) state.bench = new Set(h.get("b").split(",").filter(Boolean));
@@ -156,6 +158,7 @@
     if (state.ann) h.set("a", "1");
     if (state.type !== "all") h.set("t", state.type);
     if (state.cats.size !== CATS.length) h.set("c", [...state.cats].join(","));
+    if (state.regions.size !== REGIONS.length) h.set("r", [...state.regions].join(","));
     if (state.q) h.set("q", state.q);
     if (state.sel.length) h.set("s", state.sel.join(","));
     if (!(state.bench.size === 1 && state.bench.has("^TWII"))) h.set("b", [...state.bench].join(","));
@@ -181,6 +184,10 @@
     $("#cats").innerHTML = CATS.map((c) =>
       `<button class="chip" data-cat="${esc(c)}" aria-pressed="${state.cats.has(c)}">${esc(c)}<span class="cnt">${counts[c] || 0}</span></button>`).join("") +
       `<button class="chip" data-cat="*">全選／全不選</button>`;
+    const rc = {};
+    ETFS.forEach((e) => { rc[e.region] = (rc[e.region] || 0) + 1; });
+    $("#regions").innerHTML = REGIONS.map((r) =>
+      `<button class="chip" data-region="${esc(r)}" aria-pressed="${state.regions.has(r)}">${esc(r)}<span class="cnt">${rc[r] || 0}</span></button>`).join("");
     const benchOpts = BENCH.map((b) => [b.code, b.name]).concat([["0050", "0050"], ["0056", "0056"], ["006208", "006208"]]).filter(([c]) => byCode[c]);
     $("#bench").innerHTML = benchOpts.map(([c, l]) =>
       `<button class="chip" data-bench="${esc(c)}" aria-pressed="${state.bench.has(c)}">對照 ${esc(l)}</button>`).join("");
@@ -193,6 +200,7 @@
     { key: "code", label: "ETF", cls: "l", sortable: true },
     { key: "type", label: "類型", cls: "c hide-sm" },
     { key: "cat", label: "分類", cls: "l hide-sm", sortable: true },
+    { key: "region", label: "地區", cls: "c hide-sm", sortable: true },
     { key: "last", label: "收盤", sortable: true },
     { key: "ret", label: "期間報酬", sortable: true },
     { key: "vol", label: "年化波動", sortable: true },
@@ -207,7 +215,7 @@
     const q = state.q.trim().toLowerCase();
     return ETFS.filter((e) =>
       (state.type === "all" || (state.type === "active") === !!e.active) &&
-      state.cats.has(e.cat) &&
+      state.cats.has(e.cat) && state.regions.has(e.region) &&
       (state.market === "all" || e.market === state.market) &&
       (!state.minVol || e.vol20 / 1000 >= state.minVol) &&
       (!q || e.code.toLowerCase().includes(q) || e.name.toLowerCase().includes(q)))
@@ -222,7 +230,7 @@
     const { key, dir } = state.sort;
     const val = (r) => {
       switch (key) {
-        case "code": return r.e.code; case "cat": return r.e.cat; case "listed": return r.e.listed || "";
+        case "code": return r.e.code; case "cat": return r.e.cat; case "region": return r.e.region; case "listed": return r.e.listed || "";
         case "last": return r.e.last; case "vol20": return r.e.vol20; case "y12": return r.y12;
         case "ret": return r.retShown; case "vol": return r.m ? r.m.vol : null;
         case "mdd": return r.m ? r.m.mdd : null; case "divSum": return r.m ? r.m.divSum : null;
@@ -261,6 +269,7 @@
         <td class="l"><span class="name" data-detail="${esc(e.code)}"><span class="code">${esc(e.code)}</span>${esc(e.name)}</span></td>
         <td class="c hide-sm"><span class="tag ${e.active ? "active" : "passive"}">${e.active ? "主動" : "被動"}</span></td>
         <td class="l hide-sm">${esc(e.cat)}</td>
+        <td class="c hide-sm"><span class="tag ${e.region === "台灣" ? "tw" : e.region === "跨國" ? "mix" : "ov"}">${esc(e.region)}</span></td>
         <td class="num">${num(e.last)}</td>
         <td class="num">${m ? pct(r.retShown) : `<span class="na">資料不足</span>`}</td>
         <td class="num">${m && m.vol != null ? (m.vol * 100).toFixed(1) + "%" : '<span class="na">—</span>'}</td>
@@ -393,7 +402,7 @@
         <button class="btn" data-close>關閉</button></div>
       <div class="dlg-body">
         <div class="kv">
-          <div><span>市場</span><b>${esc(e.market)}</b></div><div><span>分類</span><b>${esc(e.cat)}</b></div>
+          <div><span>市場</span><b>${esc(e.market)}</b></div><div><span>分類</span><b>${esc(e.cat)}</b></div><div><span>投資地區</span><b>${esc(e.region)}</b></div>
           <div><span>上市日</span><b>${esc(e.listed || "—")}</b></div><div><span>資料起點</span><b>${esc(e.d0)}</b></div>
           <div><span>最新收盤</span><b>${num(e.last)}</b> <span>(${esc(e.lastDate)})</span></div>
           <div><span>近 12 月配息率</span><b>${y.y ? (y.y * 100).toFixed(2) + "%" : "—"}</b> <span>${y.cnt} 次</span></div>
@@ -416,7 +425,7 @@
     $("#footer").innerHTML = `
       <div>來源：${esc(DATA.sources.list)}；價格與除息資料：${esc(DATA.sources.prices)}。共 ${DATA.count} 檔上市櫃 ETF，每個交易日收盤後自動更新。</div>
       <div>說明：報酬以<b>市價（收盤價）</b>計算，非基金淨值；「含息再投入」假設除息日以收盤價買回，「含息不再投入」為價格差＋累計配息；
-      天／週／月／年以日曆推算，起點取該日或之前最近一個交易日；年化波動以日報酬標準差 ×√252；主動／被動與分類依證交所代號末碼與名稱關鍵字判斷，可能有誤。
+      天／週／月／年以日曆推算，起點取該日或之前最近一個交易日；年化波動以日報酬標準差 ×√252；主動／被動、分類與投資地區依證交所代號末碼、名稱關鍵字與人工覆寫表判斷，「跨國」指同時持有台灣與海外股票；可能有誤，歡迎回報。
       未計手續費、交易稅、二代健保補充保費與配息所得稅。槓桿／反向 ETF 每日重設，長期績效不等於指數倍數。僅供參考，非投資建議。</div>
       ${errs.length ? `<details><summary>本次更新有 ${errs.length} 項資料未更新成功（沿用前次資料）</summary>${errs.map((x) => `<div>${esc(x)}</div>`).join("")}</details>` : ""}`;
   }
@@ -452,6 +461,11 @@
       else if (state.cats.has(c)) state.cats.delete(c); else state.cats.add(c);
       renderControls(); refresh();
     });
+    $("#regions").addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-region]"); if (!b) return;
+      const r = b.dataset.region; if (state.regions.has(r)) state.regions.delete(r); else state.regions.add(r);
+      renderControls(); refresh();
+    });
     $("#bench").addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-bench]"); if (!b) return;
       const c = b.dataset.bench; if (state.bench.has(c)) state.bench.delete(c); else state.bench.add(c);
@@ -459,7 +473,7 @@
     });
     $("#tbl").addEventListener("click", (ev) => {
       const th = ev.target.closest("th[data-sort]");
-      if (th) { const k = th.dataset.sort; state.sort = state.sort.key === k ? { key: k, dir: -state.sort.dir } : { key: k, dir: k === "code" || k === "cat" || k === "listed" ? 1 : -1 }; refresh(); return; }
+      if (th) { const k = th.dataset.sort; state.sort = state.sort.key === k ? { key: k, dir: -state.sort.dir } : { key: k, dir: k === "code" || k === "cat" || k === "region" || k === "listed" ? 1 : -1 }; refresh(); return; }
       const d = ev.target.closest("[data-detail]"); if (d) { openDetail(d.dataset.detail); return; }
     });
     $("#tbl").addEventListener("change", (ev) => {
@@ -473,10 +487,10 @@
     $("#clear-sel").addEventListener("click", () => { state.sel = []; refresh(); });
     $("#detail").addEventListener("click", (ev) => { if (ev.target.closest("[data-close]") || ev.target === ev.currentTarget) $("#detail").close(); });
     $("#csv").addEventListener("click", () => {
-      const head = ["排名", "代號", "名稱", "類型", "分類", "市場", "收盤", `${periodLabel(state.period)}報酬%(${MODES[state.mode]})`, "年化報酬%", "起日", "訖日", "年化波動%", "最大回撤%", "期間配息", "近12月配息率%", "近12月配息次數", "20日均量(張)", "上市日"];
+      const head = ["排名", "代號", "名稱", "類型", "分類", "地區", "市場", "收盤", `${periodLabel(state.period)}報酬%(${MODES[state.mode]})`, "年化報酬%", "起日", "訖日", "年化波動%", "最大回撤%", "期間配息", "近12月配息率%", "近12月配息次數", "20日均量(張)", "上市日"];
       const lines = rowsCache.map((r, i) => {
         const e = r.e, m = r.m;
-        return [i + 1, e.code, e.name, e.active ? "主動" : "被動", e.cat, e.market, e.last,
+        return [i + 1, e.code, e.name, e.active ? "主動" : "被動", e.cat, e.region, e.market, e.last,
           m ? pctPlain(m.ret) : "", m && m.ann != null ? pctPlain(m.ann) : "", m ? fromDay(m.start) : "", m ? fromDay(m.end) : "",
           m && m.vol != null ? pctPlain(m.vol, 1) : "", m ? pctPlain(m.mdd, 1) : "", m ? m.divSum.toFixed(3) : "",
           pctPlain(r.y12), r.cnt12, Math.round(e.vol20 / 1000), e.listed || ""].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
