@@ -55,6 +55,18 @@ def fetch_history(symbol, rng="max"):
     if today.hour < 14 and rows and max(rows) == today.date().isoformat():
         del rows[today.date().isoformat()]        # 盤中執行：當日尚未收盤，不採用
 
+    # Yahoo 常把最新一根日 K 的收盤留空，但 meta 的 regularMarketPrice 已是當日收盤；盤後才拿來補
+    meta = res.get("meta") or {}
+    filled = False
+    rmt, rmp = meta.get("regularMarketTime"), meta.get("regularMarketPrice")
+    if rmt and rmp and rmp > 0:
+        t = datetime.fromtimestamp(int(rmt), tz)
+        d = t.date().isoformat()
+        after_close = t.date() < today.date() or today.hour >= 14
+        if after_close and d not in rows and (not rows or d > max(rows)):
+            rows[d] = [float(rmp), int(meta.get("regularMarketVolume") or 0)]
+            filled = True
+
     events = res.get("events") or {}
     div = {}
     for d in (events.get("dividends") or {}).values():
@@ -62,4 +74,4 @@ def fetch_history(symbol, rng="max"):
         if amt and amt > 0 and d.get("date"):
             div[day(d["date"])] = float(amt)
     splits = sorted(day(s["date"]) for s in (events.get("splits") or {}).values() if s.get("date"))
-    return {"rows": rows, "div": div, "splits": splits}
+    return {"rows": rows, "div": div, "splits": splits, "filled": filled}

@@ -55,7 +55,7 @@ def decode(e):
         for idx, amt in e.get("div") or []:
             if 0 <= idx < len(dates):
                 div[dates[idx]] = amt
-    return {"rows": rows, "div": div, "splits": []}
+    return {"rows": rows, "div": div, "splits": [], "adj": [list(a) for a in e.get("adj") or []]}
 
 
 def encode(hist):
@@ -113,7 +113,8 @@ def adjust_splits(hist):
                 if d < dates[i]:
                     div[d] *= factor
             found.append([dates[i], round(factor, 4)])
-    hist["adj"] = found
+    known = {a[0] for a in hist.get("adj") or []}
+    hist["adj"] = sorted((hist.get("adj") or []) + [a for a in found if a[0] not in known])
     return found
 
 
@@ -122,7 +123,8 @@ def merge(old, new):
     rows.update(new["rows"])                       # 同日期以新資料為準
     div = dict(old["div"]) if old else {}
     div.update(new["div"])
-    return {"rows": rows, "div": div, "splits": new.get("splits", [])}
+    return {"rows": rows, "div": div, "splits": new.get("splits", []),
+            "adj": (old or {}).get("adj") or [], "filled": new.get("filled", False)}
 
 
 # ---------------------------------------------------------------- 主流程
@@ -162,6 +164,7 @@ def run(full=False, limit=None):
     print(f"ETF {len(etfs)} 檔，快取 {len(cache)} 檔，{'全抓' if full else '增量'}")
 
     out_etfs = []
+    filled = 0
     streak, halted = 0, False
     for i, e in enumerate(etfs, 1):
         cached = cache.get(e["code"])
@@ -175,12 +178,14 @@ def run(full=False, limit=None):
                 halted = True
                 errors.append(f"連續 {MAX_STREAK} 檔抓取失敗（可能被 Yahoo 限流），其餘 {len(etfs) - i} 檔沿用前次資料")
                 print(" !", errors[-1])
+        if hist and hist.get("filled"):
+            filled += 1
         if hist:
             for day, factor in adjust_splits(hist):
                 print(f"  {e['code']} {e['name']}：{day} 偵測到{'反' if factor > 1 else ''}分割 ×{factor:g}，已回溯調整")
         enc = encode(hist) if hist else None
         if enc:
-            item = {k: e[k] for k in ("code", "name", "market", "listed", "active", "cat", "region")}
+            item = {k: e[k] for k in ("code", "name", "market", "listed", "active", "cat", "region", "regionGuess")}
             item.update(enc)
             out_etfs.append(item)
         if i % 25 == 0:
@@ -197,7 +202,12 @@ def run(full=False, limit=None):
             item.update(enc)
             bench.append(item)
 
+    if filled:
+        print(f"  以 Yahoo 即時報價補上最新收盤：{filled} 檔")
     asof = max((e["lastDate"] for e in out_etfs), default="")
+    stale = [e["code"] for e in out_etfs if e["lastDate"] < asof]
+    if stale:
+        errors.append(f"{len(stale)} 檔最新資料早於 {asof}（Yahoo 尚未更新），網頁會標示：{' '.join(stale[:20])}{' …' if len(stale) > 20 else ''}")
     data = {"generated": now_tw().strftime("%Y-%m-%d %H:%M"), "asof": asof,
             "count": len(out_etfs), "errors": errors,
             "sources": {"list": "證交所／櫃買中心 ISIN 名冊", "prices": "Yahoo Finance（市價、除息）"},

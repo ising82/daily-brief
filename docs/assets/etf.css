@@ -62,6 +62,8 @@
 .tag.tw { background: var(--tw-bg); color: var(--tw); }
 .tag.ov { background: var(--us-bg); color: var(--us); }
 .tag.mix { background: var(--hol-bg); color: var(--hol); }
+.tag.guess { outline: 1px dashed currentColor; outline-offset: -1px; }
+.stale { font-size: 11px; color: var(--hol); font-weight: 600; }
 .cmp { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
 .cmp th, .cmp td { padding: 5px 8px; text-align: right; border-top: 1px solid var(--line); white-space: nowrap; }
 .cmp th { color: var(--muted); font-size: 12px; font-weight: 700; }

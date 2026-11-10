@@ -269,8 +269,8 @@
         <td class="l"><span class="name" data-detail="${esc(e.code)}"><span class="code">${esc(e.code)}</span>${esc(e.name)}</span></td>
         <td class="c hide-sm"><span class="tag ${e.active ? "active" : "passive"}">${e.active ? "主動" : "被動"}</span></td>
         <td class="l hide-sm">${esc(e.cat)}</td>
-        <td class="c hide-sm"><span class="tag ${e.region === "台灣" ? "tw" : e.region === "跨國" ? "mix" : "ov"}">${esc(e.region)}</span></td>
-        <td class="num">${num(e.last)}</td>
+        <td class="c hide-sm"><span class="tag ${e.region === "台灣" ? "tw" : e.region === "跨國" ? "mix" : "ov"}${e.regionGuess ? " guess" : ""}"${e.regionGuess ? ' title="依名稱推測，尚未人工確認"' : ""}>${esc(e.region)}${e.regionGuess ? "?" : ""}</span></td>
+        <td class="num">${num(e.last)}${e.lastDate < DATA.asof ? `<div class="stale" title="Yahoo 尚未更新此檔，期間終點較其他檔早">至 ${esc(e.lastDate.slice(5).replace("-", "/"))}</div>` : ""}</td>
         <td class="num">${m ? pct(r.retShown) : `<span class="na">資料不足</span>`}</td>
         <td class="num">${m && m.vol != null ? (m.vol * 100).toFixed(1) + "%" : '<span class="na">—</span>'}</td>
         <td class="num">${m ? pct(m.mdd, 1) : '<span class="na">—</span>'}</td>
@@ -286,6 +286,8 @@
     if (short) notes.push(state.hideShort ? `另有 ${short} 檔因上市未滿此期間（或期間內無資料）未列出，取消「隱藏資料不足」可顯示。` : `${short} 檔資料不足，排在最後。`);
     if (state.period.kind === "quick" && state.period.key === "max") notes.push("「上市以來」各檔起點不同，不宜直接相互比較。");
     if (annMode) notes.push("年化報酬只對期間 ≥ 1 年者顯示，其餘仍為累積報酬。");
+    const staleN = rows.filter((r) => r.e.lastDate < DATA.asof).length;
+    if (staleN) notes.push(`${staleN} 檔 Yahoo 資料未更新到 ${DATA.asof}，收盤欄有標示，短期間報酬不宜直接比較。`);
     if (!rows.length) notes.push("沒有符合條件的 ETF。");
     $("#tbl-note").textContent = notes.join(" ");
   }
@@ -402,7 +404,7 @@
         <button class="btn" data-close>關閉</button></div>
       <div class="dlg-body">
         <div class="kv">
-          <div><span>市場</span><b>${esc(e.market)}</b></div><div><span>分類</span><b>${esc(e.cat)}</b></div><div><span>投資地區</span><b>${esc(e.region)}</b></div>
+          <div><span>市場</span><b>${esc(e.market)}</b></div><div><span>分類</span><b>${esc(e.cat)}</b></div><div><span>投資地區</span><b>${esc(e.region)}${e.regionGuess ? "（依名稱推測）" : ""}</b></div>
           <div><span>上市日</span><b>${esc(e.listed || "—")}</b></div><div><span>資料起點</span><b>${esc(e.d0)}</b></div>
           <div><span>最新收盤</span><b>${num(e.last)}</b> <span>(${esc(e.lastDate)})</span></div>
           <div><span>近 12 月配息率</span><b>${y.y ? (y.y * 100).toFixed(2) + "%" : "—"}</b> <span>${y.cnt} 次</span></div>
